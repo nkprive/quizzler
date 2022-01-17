@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+
+import 'quiz.dart';
+import 'scores.dart';
 
 void main() => runApp(Quizzler());
+
+var quiz = Quiz();
+var scores = Scores();
 
 class Quizzler extends StatelessWidget {
   @override
@@ -25,6 +32,31 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
+  void validateQuestion(input) {
+    setState(() {
+      if (input == quiz.getQuestionAnswer()) {
+        // set correct answer
+        scores.addScore(true);
+      } else {
+        // set wrong answer
+        scores.addScore(false);
+      }
+
+      // load next scene (either next question or result screen)
+      if (quiz.lastQuestion) {
+        final scoreCount = scores.correctCount;
+        final quizLength = quiz.questions.length;
+
+        quiz.reset();
+        scores.reset();
+
+        _showResults(context, scoreCount, quizLength);
+      } else {
+        quiz.nextQuestion();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -37,7 +69,7 @@ class _QuizPageState extends State<QuizPage> {
             padding: EdgeInsets.all(10.0),
             child: Center(
               child: Text(
-                'This is where the question text will go.',
+                quiz.getQuestionText(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 25.0,
@@ -50,9 +82,10 @@ class _QuizPageState extends State<QuizPage> {
         Expanded(
           child: Padding(
             padding: EdgeInsets.all(15.0),
-            child: FlatButton(
-              textColor: Colors.white,
-              color: Colors.green,
+            child: TextButton(
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.green),
+              ),
               child: Text(
                 'True',
                 style: TextStyle(
@@ -61,7 +94,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: () {
-                //The user picked true.
+                validateQuestion(true);
               },
             ),
           ),
@@ -69,8 +102,10 @@ class _QuizPageState extends State<QuizPage> {
         Expanded(
           child: Padding(
             padding: EdgeInsets.all(15.0),
-            child: FlatButton(
-              color: Colors.red,
+            child: TextButton(
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.red),
+              ),
               child: Text(
                 'False',
                 style: TextStyle(
@@ -80,18 +115,63 @@ class _QuizPageState extends State<QuizPage> {
               ),
               onPressed: () {
                 //The user picked false.
+                validateQuestion(false);
               },
             ),
           ),
         ),
-        //TODO: Add a Row here as your score keeper
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: scores.scores,
+        )
       ],
     );
   }
-}
 
-/*
-question1: 'You can lead a cow down stairs but not up stairs.', false,
-question2: 'Approximately one quarter of human bones are in the feet.', true,
-question3: 'A slug\'s blood is green.', true,
-*/
+  _showResults(context, scoreCount, quizLength) {
+    var desc = '';
+
+    if (scoreCount > 1) {
+      desc = '$scoreCount out of $quizLength are correct!';
+    } else {
+      desc = '$scoreCount out of $quizLength is correct!';
+    }
+
+    Alert(
+        context: context,
+        padding: EdgeInsets.all(10.0),
+        title: "Result",
+        desc: desc,
+        buttons: [
+          DialogButton(
+            child: Text(
+              "TRY AGAIN",
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+            onPressed: () => Navigator.pop(context),
+            color: Color.fromRGBO(0, 179, 134, 1.0),
+          )
+        ],
+        style: AlertStyle(
+          backgroundColor: Colors.grey.shade900,
+          animationType: AnimationType.grow,
+          isCloseButton: false,
+          isOverlayTapDismiss: true,
+          descStyle: TextStyle(fontSize: 20.0, color: Colors.white),
+          descTextAlign: TextAlign.start,
+          animationDuration: Duration(milliseconds: 400),
+          alertBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(5.0),
+            side: BorderSide(
+              color: Colors.grey.shade900,
+            ),
+          ),
+          titleStyle: TextStyle(
+            fontSize: 30.0,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          alertAlignment: Alignment.center,
+        )).show();
+  }
+}
